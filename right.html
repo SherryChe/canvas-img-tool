@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #menu {
+            width: 80px;
+            background: #CCC;
+            position: absolute;
+            display: none;
+        }
+
+        #menu ul {
+            width: 100%;
+            list-style: none;
+            border: 2px solid #666;
+            border-bottom: 0px;
+        }
+
+        #menu ul li {
+            height: 30px;
+            font-size: 16px;
+            color: #333;
+            line-height: 30px;
+            text-align: center;
+            border-bottom: 2px solid #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="menu">
+        <ul>
+            <li>帮助</li>
+            <li>设置</li>
+            <li>复制</li>
+            <li>粘贴</li>
+            <li>剪切</li>
+        </ul>
+    </div>
+
+</body>
+<script>
+    window.onload = function () {
+        var menu = document.getElementById("menu");
+
+        document.oncontextmenu = function (ev) {
+            var ev = ev || event;
+            var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+
+            menu.style.display = "block";
+            menu.style.left = ev.clientX + "px";
+            //当滑动滚动条时也能准确获取菜单位置
+            menu.style.top = ev.clientY + scrollTop + "px";
+            //阻止默认事件
+            return false;
+        }}
+
+</script>
+
+</html>
