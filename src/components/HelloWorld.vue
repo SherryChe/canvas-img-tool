@@ -35,8 +35,7 @@
 </template>
 
 <script>
-    import ruler from '../assets/ruler.js';
-    import Grid from '../assets/grid';
+    // import ruler from '../assets/ruler.js';
     export default {
         data: function() {
             return {

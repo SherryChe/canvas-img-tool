@@ -1,14 +1,17 @@
+/**
+* Created by chenxq on 2018/11/19.
+*/
 <template>
     <ul>
         <li v-for="item in list"
             v-bind:key="item.key"
             @click="leadingIn(item)"
-        >{{item.title}}</li>
+        >
+            <img :src="item.opts.content" style="width:60px; height: 60px;" alt="">
+        </li>
 
     </ul>
-
 </template>
-
 <script>
     import Data from '../common/data';
     export default {
@@ -23,7 +26,7 @@
         },
         data(){
             return {
-                list:Data.text || [],
+                list:Data.img || [],
             }
         },
         methods: {
@@ -38,14 +41,15 @@
     }
 
 </script>
-
-
 <style lang="scss" scoped>
     ul {
         list-style: none;
         li{
             padding: 10px 0;
             text-align: center;
+            img{
+                margin: 0 auto;
+            }
             &:hover{
                 background: #e8e8e8;
             }

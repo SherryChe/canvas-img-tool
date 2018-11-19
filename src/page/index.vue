@@ -1,7 +1,7 @@
 <template>
     <div v-cloak class="container" @click="commonClick">
         <div class="header">
-            <p class="page-set">
+            <p class="page-set" v-if="selectTopType===''">
                 <span>页宽</span>
                 <input type="text" v-model="width">
                 <span>px</span>
@@ -9,7 +9,10 @@
                 <input type="text" v-model="height">
                 <span>px</span>
             </p>
-
+            <p v-else>
+                <button @click="deleteCanvas">复制</button>
+                <button @click="deleteCanvas">删除</button>
+            </p>
         </div>
         <div class="wrapper">
             <div class="left-bar">
@@ -26,14 +29,17 @@
                 <canvas class="top-ruler" id="top-ruler"></canvas>
                 <div class="main-canvas">
                     <canvas class="left-ruler" id="left-ruler"></canvas>
-                    <canvas class="tool-main" id="main"></canvas>
+                    <div class="tool-main" id="main">
+                        <canvas id="main-canvas"></canvas>
+                    </div>
                 </div>
 
 
             </div>
             <div class="right-bar"></div>
             <div :class="['tab-content', leftVisible && 'show']" >
-                <word-left :canvas="mainCanvas" :width="width" :height="height"></word-left>
+                <word-left v-if="selectLeftType === 'text' " :canvas="mainCanvas" :width="width" :height="height" @add-canvas="addCanvas"></word-left>
+                <img-left v-if="selectLeftType === 'img' " :canvas="mainCanvas" :width="width" :height="height" @add-canvas="addCanvas" ></img-left>
             </div>
         </div>
 
@@ -42,7 +48,9 @@
 </template>
 
 <script>
-    import WordLeft from './word/left.vue';
+    import WordLeft from '../components/word/left.vue';
+    import ImgLeft from '../components/img/left.vue';
+    import uuid from '../util/uuid';
     export default {
         data(){
             return {
@@ -51,6 +59,8 @@
                 ratio: 1, // 缩放比例
                 leftVisible: false,
                 mainCanvas: {},
+                selectLeftType: '', //左侧选中
+                selectTopType: '', // 顶部bar选中
                 list: [{
                     icon: '',
                     text: '文字',
@@ -61,8 +71,12 @@
                     type: 'model',
                 },{
                     icon: '',
+                    text: '形状',
+                    type: 'shape',
+                },{
+                    icon: '',
                     text: '素材',
-                    type: 'sucai',
+                    type: 'img',
                 },{
                     icon: '',
                     text: '背景',
@@ -76,6 +90,7 @@
         },
         components:{
             WordLeft,
+            ImgLeft,
         },
         methods: {
             getOrigin() {
@@ -90,13 +105,12 @@
                     x,
                     y,
                 }
-
             },
             ruler() {
                 let {x, y, width, height} = this.getOrigin();
                 let {ratio} = this;
-                let maxWidth = Math.ceil (2000 / ratio);
-                let maxHeight =Math.ceil(30000 / ratio);
+                let maxWidth = this.maxWidth;
+                let maxHeight = this.maxHeight;
                 var topCanvas = new fabric.Canvas('top-ruler', {
                     backgroundColor: '#f8f8f8',
                     width,
@@ -191,42 +205,65 @@
                 var rect = new fabric.Rect({
                     width: this.width,
                     height: this.height,
-                    fill: 'transparent',
+                    fill: '#fff',
                     selectable: false,
                     type: 'rect',
                     top: y,
                     left: x - 18,
                 })
-                this.mainCanvas = new fabric.Canvas('main', {
+                this.mainCanvas = new fabric.Canvas('main-canvas', {
                     backgroundColor: '#ececec',
-                    width: width - 18,
-                    height: height - 18,
-                    zIndex: 33
+                    width: width-18,
+                    height: height-18,
+                    zIndex: 33,
+                    top: - (this.maxHeight / 2),
+                    left: -(this.maxWidth / 2)
                 });
                 this.mainCanvas.add(rect);
+                this.mainCanvas.on({
+                    'mouse:down': this.changeTopbar,
+                });
                 this.mainCanvas.renderAll();
 
             },
+            changeTopbar(e) {
+                if(e && e.target && e.target.type && e.target.selectable) { // 并且处于解锁状态
+                    this.selectTopType = e.target.type;
+                } else {
+                    this.selectTopType = '';  // 空白处
+                }
+            },
             showDetail(info) {
                 this.leftVisible = true;
-                // this.addCanvas();
+                this.selectLeftType = info.type;
             },
             commonClick() {
                 this.leftVisible = false;
             },
-            addCanvas() {
-                let itext = new fabric.IText('双击编辑', {
-                    left: 100,
-                    top: 150,
-                    fill: '#D81B60',
-                    strokeWidth: 2,
-                    stroke: "#333",
-                    type: 'text',
-                    cornerStyle: 'circle',
-                    fontSize: 50,
-                });
-                this.mainCanvas.add(itext);
+            addCanvas({func, type,width=0, height=0,...opts}) {
+                let top_w = document.getElementsByClassName("top-ruler")[0].offsetWidth;
+                let left_h = document.getElementsByClassName("left-ruler")[0].offsetHeight;
+                let top =  Math.ceil((left_h - height) / 2);
+                let left = Math.ceil((top_w - width) / 2);
+                opts.top = top;
+                opts.left = left;
+                opts.selectable = true;
+                if (type === 'text') {
+                    let itext = new func(opts.content, opts);
+                    this.mainCanvas.add(itext);
+                }
+                if (type === 'img') {
+                    new func(opts.content, oImg => {
+                        oImg.set(opts);
+                        this.mainCanvas.add(oImg);
+                    })
+                }
+
+
                 this.mainCanvas.renderAll();
+            },
+            deleteCanvas() {
+                this.mainCanvas.remove(this.mainCanvas.getActiveObject());
             }
 
         },
@@ -236,6 +273,14 @@
         },
         watch:{
 
+        },
+        computed:{
+            maxHeight() {
+                return Math.ceil (10000 / this.ratio);
+            },
+            maxWidth() {
+                return Math.ceil (10000 / this.ratio);
+            }
         }
 
     }
@@ -262,6 +307,7 @@
         background: #fff;
         display: flex;
         align-items: center;
+        justify-content: center;
         border-bottom: 1px solid #e5e5e5;
 
     }
