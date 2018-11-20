@@ -41,6 +41,11 @@
                 <word-left v-if="selectLeftType === 'text' " :canvas="mainCanvas" :width="width" :height="height" @add-canvas="addCanvas"></word-left>
                 <img-left v-if="selectLeftType === 'img' " :canvas="mainCanvas" :width="width" :height="height" @add-canvas="addCanvas" ></img-left>
             </div>
+            <div class="footer">
+                <div v-for="one in footer" :title="one.text" @click="handleFooter(one)">
+                    <img :src="one.icon" alt="">
+                </div>
+            </div>
         </div>
 
     </div>
@@ -85,7 +90,12 @@
                     icon: '',
                     text: '上传',
                     type: 'upload',
-                }]
+                }],
+                footer: [{icon: require('../assets/fd.png'), text: '放大', func: this.changeZoom.bind(this,1)},
+                    {icon: require('../assets/sx.png'), text: '缩小', func: this.changeZoom.bind(this,2)},
+                    {icon: require('../assets/zs.png'), text: '抓手', },
+                    {icon: require('../assets/allsrceen.png'), text: '满屏'},
+                    {icon: require('../assets/yby.png'), text: '1:1', func: this.setZoom.bind(this,1)},]
             }
         },
         components:{
@@ -107,13 +117,17 @@
                 }
             },
             ruler() {
-                let {x, y, width, height} = this.getOrigin();
+                let {width, height} = this.getOrigin();
                 let {ratio} = this;
-                let maxWidth = this.maxWidth;
-                let maxHeight = this.maxHeight;
+                let objs=this.mainCanvas.getObjects();
+                let w = objs[0].width * ratio;
+                let h =objs[0].height * ratio;
+                let {top, left} = this.mainCanvas.getCenter(); // 中心
+                let x = Math.ceil(left - w / 2);
+                let y =Math.ceil(top - h / 2);
                 var topCanvas = new fabric.Canvas('top-ruler', {
                     backgroundColor: '#f8f8f8',
-                    width,
+                    width: width,
                     height: 18,
                     top: 0,
                     left: 0,
@@ -126,16 +140,18 @@
                     top: 0,
                     left: 0,
                     selection: false
-                })
-                for (let i = -maxWidth; i <= maxWidth; i++ ) {
-                    if (i % 100 === 0) {
-                        let line = new fabric.Line([i + x, 18, i + x, 0], {
+                });
+                topCanvas.clear();
+                leftCanvas.clear();
+                for (let i = 0; i <= width; i++ ) {
+                    if ((i-x) % 100 === 0) {
+                        let line = new fabric.Line([i , 18, i , 0], {
                             fill: '#dedede',
                             stroke: '#dedede',
                             strokeWidth: 1,
                         })
-                        let text = new fabric.Text(String(i * ratio), {
-                            left: i + x + 2,
+                        let text = new fabric.Text(String(Math.ceil((i-x) * ratio)), {
+                            left: i + 2,
                             top: 5,
                             fill: '#dedede',
                             strokeWidth: 1,
@@ -145,15 +161,15 @@
                         });
                         topCanvas.add(line, text);
 
-                    } else if (i % 50 ===0 ) {
-                        let line = new fabric.Line([i + x, 18, i + x, 10], {
+                    } else if ((i-x) % 50 ===0 ) {
+                        let line = new fabric.Line([i , 18, i , 10], {
                             fill: '#dedede',
                             stroke: '#dedede',
                             strokeWidth: 1,
                         })
                         topCanvas.add(line);
-                    } else if(i % 5 === 0) {
-                        let line = new fabric.Line([i + x, 18, i + x, 16], {
+                    } else if((i-x) % 5 === 0) {
+                        let line = new fabric.Line([i, 18, i, 16], {
                             fill: '#dedede',
                             stroke: '#dedede',
                             strokeWidth: 1,
@@ -162,15 +178,15 @@
                     }
 
                 }
-                for (let j = -maxHeight; j <= maxHeight ; j++) {
-                    if (j % 100 === 0) {
-                        let line = new fabric.Line([0, j + y, 18, j + y], {
+                for (let j = 0; j <= height ; j++) {
+                    if ((j-y) % 100 === 0) {
+                        let line = new fabric.Line([0, j, 18, j], {
                             fill: '#dedede',
                             stroke: '#dedede',
                             strokeWidth: 1,
                         })
-                        let text = new fabric.Text(String(j * ratio), {
-                            top: j + y + 8,
+                        let text = new fabric.Text(String(Math.ceil((j-y) * ratio)), {
+                            top: j + 8,
                             left: 12,
                             fill: '#dedede',
                             strokeWidth: 1,
@@ -181,15 +197,15 @@
                         });
                         leftCanvas.add(line, text);
 
-                    } else if (j % 50 ===0 ) {
-                        let line = new fabric.Line([10 , j + y, 18, j + y], {
+                    } else if ((j -y) % 50 ===0 ) {
+                        let line = new fabric.Line([10 , j , 18, j ], {
                             fill: '#dedede',
                             stroke: '#dedede',
                             strokeWidth: 1,
                         })
                         leftCanvas.add(line);
-                    } else if(j % 5 === 0) {
-                        let line = new fabric.Line([16, j + y, 18, j + y], {
+                    } else if((j-y) % 5 === 0) {
+                        let line = new fabric.Line([16, j , 18, j], {
                             fill: '#dedede',
                             stroke: '#dedede',
                             strokeWidth: 1,
@@ -212,7 +228,7 @@
                     left: x - 18,
                 })
                 this.mainCanvas = new fabric.Canvas('main-canvas', {
-                    backgroundColor: '#ececec',
+                    backgroundColor: 'red',
                     width: width-18,
                     height: height-18,
                     zIndex: 33,
@@ -222,6 +238,16 @@
                 this.mainCanvas.add(rect);
                 this.mainCanvas.on({
                     'mouse:down': this.changeTopbar,
+                });
+                this.mainCanvas.on('mouse:wheel', (opt)=>{
+                    var delta = opt.e.deltaY;
+                    var zoom = this.mainCanvas.getZoom();
+                    zoom = zoom + delta/500;
+                    if (zoom > 5) zoom = 5;
+                    if (zoom < 0.01) zoom = 0.01;
+                    this.setZoom(zoom);
+                    opt.e.preventDefault();
+                    opt.e.stopPropagation();
                 });
                 this.mainCanvas.renderAll();
 
@@ -294,17 +320,39 @@
                 });
             },
             setActive(activeObj) { // 默认选中某一个 active
+                this.selectTopType = activeObj.type;
                 this.mainCanvas.discardActiveObject();
                 this.mainCanvas.setActiveObject(activeObj);
             },
             deleteCanvas() {
                 this.mainCanvas.remove(this.mainCanvas.getActiveObject());
+                this.selectTopType = '';  // 空白处
+            },
+            handleFooter(info) {
+                info.func && info.func.apply(null);
+            },
+            changeZoom(type) { // 1 放大  2 缩小
+                let zoom = this.mainCanvas.getZoom();
+                if (type === 1 && zoom<= 5) {
+                    zoom = zoom + 0.11;
+                }
+                if(type ===2 && zoom > 0.01){
+                    zoom = zoom - 0.11;
+                }
+                this.setZoom(zoom);
+            },
+            setZoom(zoom) {
+                this.ratio= zoom;
+                var zoomPoint = new fabric.Point(this.mainCanvas.width / 2 , this.mainCanvas.height / 2);
+                //开始缩放  居中缩放
+                this.mainCanvas.zoomToPoint(zoomPoint, zoom);
+                this.ruler();
             }
 
         },
         mounted() {
-            this.ruler();
             this.showMain();
+            this.ruler();
         },
         watch:{
 
@@ -315,7 +363,7 @@
             },
             maxWidth() {
                 return Math.ceil (10000 / this.ratio);
-            }
+            },
         }
 
     }
@@ -325,6 +373,7 @@
 
 <style scoped lang="scss">
     .container{
+
         position: fixed;
         left: 0;
         right: 0;
@@ -395,6 +444,7 @@
 
     .right-bar{
         width: 100px;
+        border-left: 1px solid #e5e5e5;
 
     }
 
@@ -427,6 +477,38 @@
             border:1px solid #dbdbdb;
             margin-right: 4px;
 
+        }
+    }
+    .footer{
+        position: fixed;
+        display: flex;
+        left: 50%;
+        width: 250px;
+        height: 35px;
+        line-height: 35px;
+        bottom: 15px;
+        -webkit-transform: translateX(-50%);
+        transform: translateX(-50%);
+        background-color: #fff;
+        box-shadow: 0 0 5px rgba(0,0,0,.15);
+        z-index: 20;
+        >div{
+            flex: 1;
+            border-right: 1px solid #f1f1f1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            &:hover{
+                background: #e8e8e8;
+            }
+            &:last-child{
+                border-right: none;
+            }
+            img{
+                width: 20px;
+                height: 20px;
+            }
         }
     }
 
