@@ -10,7 +10,7 @@
                 <span>px</span>
             </p>
             <p v-else>
-                <button @click="deleteCanvas">复制</button>
+                <button @click="copyCanvas">复制</button>
                 <button @click="deleteCanvas">删除</button>
             </p>
         </div>
@@ -251,16 +251,51 @@
                 if (type === 'text') {
                     let itext = new func(opts.content, opts);
                     this.mainCanvas.add(itext);
+                    this.setActive(itext);
                 }
                 if (type === 'img') {
                     new func(opts.content, oImg => {
                         oImg.set(opts);
                         this.mainCanvas.add(oImg);
+                        this.setActive(oImg);
                     })
                 }
-
-
                 this.mainCanvas.renderAll();
+            },
+            copyCanvas() {
+                let _this=this;
+                this.mainCanvas.getActiveObject().clone(function(cloned){
+                    _this.paste(cloned);
+                })
+            },
+            paste(_clipboard){
+                let canvas = this.mainCanvas;
+                _clipboard.clone(function(clonedObj) {
+                    canvas.discardActiveObject();
+                    clonedObj.set({
+                        left: clonedObj.left + 20,
+                        top: clonedObj.top + 20,
+                        evented: true,
+                    });
+                    if (clonedObj.type === 'activeSelection') {
+                        // active selection needs a reference to the canvas.
+                        clonedObj.canvas = canvas;
+                        clonedObj.forEachObject(function(obj) {
+                            canvas.add(obj);
+                        });
+                        // this should solve the unselectability
+                        clonedObj.setCoords();
+                    } else {
+                        canvas.add(clonedObj);
+                    }
+                    _clipboard.top += 20;
+                    _clipboard.left += 20;
+                    canvas.setActiveObject(clonedObj);
+                });
+            },
+            setActive(activeObj) { // 默认选中某一个 active
+                this.mainCanvas.discardActiveObject();
+                this.mainCanvas.setActiveObject(activeObj);
             },
             deleteCanvas() {
                 this.mainCanvas.remove(this.mainCanvas.getActiveObject());
