@@ -56,6 +56,7 @@
     import WordLeft from '../components/word/left.vue';
     import ImgLeft from '../components/img/left.vue';
     import uuid from '../util/uuid';
+    import {throttle} from '../util/tool';
     export default {
         data(){
             return {
@@ -352,7 +353,9 @@
         },
         mounted() {
             this.showMain();
+            this.ruler= throttle(this.ruler, 1000, false);
             this.ruler();
+
         },
         watch:{
 
