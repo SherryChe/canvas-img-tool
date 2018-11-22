@@ -151,7 +151,7 @@
                             stroke: '#dedede',
                             strokeWidth: 1,
                         })
-                        let text = new fabric.Text(String(Math.ceil((i-x) * ratio)), {
+                        let text = new fabric.Text(String(Math.ceil((i-x) / ratio)), {
                             left: i + 2,
                             top: 5,
                             fill: '#dedede',
@@ -186,7 +186,7 @@
                             stroke: '#dedede',
                             strokeWidth: 1,
                         })
-                        let text = new fabric.Text(String(Math.ceil((j-y) * ratio)), {
+                        let text = new fabric.Text(String(Math.ceil((j-y) / ratio)), {
                             top: j + 8,
                             left: 12,
                             fill: '#dedede',
